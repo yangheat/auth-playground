@@ -1,9 +1,20 @@
 import { Elysia, t } from "elysia";
 
+// 임시 세션 저장소
+const sessions = new Map<
+  string,
+  { username: string; createAt: number; expiresAt: number }
+>();
+
 const testUser = {
   username: "test",
-  password: "1234",
+  password:
+    "$argon2id$v=19$m=65536,t=2,p=1$292kuacxOTrrlwxQm/rafWt55NKadhQASNiFQsFEFm0$pcZ7A5DCd1C3vuZHgAjBCOikMV5zWdcPZm1aOr1pCXM",
 };
+
+function generateSessionId() {
+  return crypto.randomUUID();
+}
 
 const app = new Elysia()
   .group("/api", (app) =>
@@ -11,16 +22,24 @@ const app = new Elysia()
       .get("/", () => "Hello Elysia")
       .post(
         "/auth/login",
-        ({ body, status }) => {
+        ({ body, cookie, status }) => {
           const { username, password } = body;
 
           if (
             username !== testUser.username ||
-            password !== testUser.password
+            !Bun.password.verify(password, testUser.password)
           ) {
             return status(401, "Invalid username or password");
           }
-          return status(200, "Login successful");
+
+          const newSessionId = generateSessionId();
+          sessions.set(newSessionId, {
+            username,
+            createAt: Date.now(),
+            expiresAt: Date.now() + 60 * 1000,
+          });
+          cookie.sessionId.set({ value: newSessionId });
+          return status(200);
         },
         {
           body: t.Object({
@@ -28,7 +47,19 @@ const app = new Elysia()
             password: t.String(),
           }),
         },
-      ),
+      )
+      .get('auth/session', ({cookie, status}) => {
+        const sessionId = cookie.sessionId.value
+        const session = sessions.get(sessionId)
+        if (!session) {
+          return status(401, "Unauthorized");
+        }
+        return status(200)
+      }, {
+        cookie: t.Cookie({
+          sessionId: t.String(),
+        }),
+      })
   )
   .listen(3000);
 
