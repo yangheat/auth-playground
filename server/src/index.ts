@@ -48,6 +48,12 @@ const app = new Elysia()
           }),
         },
       )
+      .delete('/auth/logout', ({ cookie, status}) => {
+        const sessionId = cookie.sessionId.value
+        // 세션 저장소에서 세션 제거
+        sessions.delete(sessionId)
+        status(200)
+      })
       .get('auth/session', ({cookie, status}) => {
         const sessionId = cookie.sessionId.value
         const session = sessions.get(sessionId)

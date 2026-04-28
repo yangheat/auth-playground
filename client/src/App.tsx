@@ -19,6 +19,8 @@ function App() {
       const response = await fetch('/api/auth/session')
       if (response.ok) {
         setSession(true)
+      } else {
+        setSession(false)
       }
       
     } catch (error) {
@@ -37,6 +39,12 @@ function App() {
       headers: {
         "Content-Type": "application/json",
       },
+    }).then(refreshSession);
+  }
+
+  function logout() {
+    fetch("/api/auth/logout", {
+      method: "DELETE",
     }).then(refreshSession);
   }
 
@@ -85,7 +93,7 @@ function App() {
                 ></Input>
               </Field>
               <Field>
-                {session ? <Button type="button">Logout</Button> : null}
+                {session ? <Button type="button" onClick={logout}>Logout</Button> : <Button type="submit">Login</Button>}
               </Field>
             </FieldGroup>
           </form>
