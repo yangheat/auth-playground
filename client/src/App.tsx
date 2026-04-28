@@ -22,9 +22,9 @@ function App() {
       } else {
         setSession(false)
       }
-      
     } catch (error) {
-      setSession(false) 
+      console.error(error)
+      setSession(false)
     }
   }, [])
 
@@ -33,7 +33,7 @@ function App() {
     const username = formData.get("username");
     const password = formData.get("password");
 
-    fetch("/api/auth/login", {
+    fetch("/api/auth/session/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
       headers: {
@@ -43,7 +43,7 @@ function App() {
   }
 
   function logout() {
-    fetch("/api/auth/logout", {
+    fetch("/api/auth/session/logout", {
       method: "DELETE",
     }).then(refreshSession);
   }
@@ -60,14 +60,14 @@ function App() {
         </CardHeader>
         <CardContent>
           <FieldGroup>
-          <Field>
-            <FieldLegend>로그인 상태</FieldLegend>
-            <FieldDescription>{session ? "로그인됨" : "로그인되지 않음"}</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLegend>Cookie</FieldLegend>
-            <FieldDescription>{document.cookie}</FieldDescription>
-          </Field>
+            <Field>
+              <FieldLegend>로그인 상태</FieldLegend>
+              <FieldDescription>{session ? "로그인됨" : "로그인되지 않음"}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLegend>Cookie</FieldLegend>
+              <FieldDescription>{document.cookie}</FieldDescription>
+            </Field>
           </FieldGroup>
         </CardContent>
       </Card>
@@ -93,7 +93,9 @@ function App() {
                 ></Input>
               </Field>
               <Field>
-                {session ? <Button type="button" onClick={logout}>Logout</Button> : <Button type="submit">Login</Button>}
+                {session ? <Button type="button" onClick={logout}>Logout</Button> : <>
+                  <Button type="submit">Login With Session</Button>
+                </>}
               </Field>
             </FieldGroup>
           </form>
