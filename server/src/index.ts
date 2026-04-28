@@ -52,12 +52,16 @@ const app = new Elysia()
         const sessionId = cookie.sessionId.value
         // 세션 저장소에서 세션 제거
         sessions.delete(sessionId)
+        // 쿠키에 sessionId 제거
+        cookie.sessionId.remove()
         status(200)
       })
       .get('auth/session', ({cookie, status}) => {
         const sessionId = cookie.sessionId.value
         const session = sessions.get(sessionId)
         if (!session) {
+          // 쿠키에 sessionId 제거
+          cookie.sessionId.remove()
           return status(401, "Unauthorized");
         }
         return status(200)
