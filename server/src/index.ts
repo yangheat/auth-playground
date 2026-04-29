@@ -1,3 +1,4 @@
+import jwt from "@elysia/jwt";
 import { Elysia, t } from "elysia";
 
 // 임시 세션 저장소
@@ -17,30 +18,83 @@ function generateSessionId() {
 }
 
 const app = new Elysia()
-  .group("/api", (app) =>
-    app.group("/auth/session", (app) =>
-      app
-        .get(
-          "/",
-          ({ cookie, status }) => {
-            const sessionId = cookie.sessionId.value;
-            const session = sessions.get(sessionId);
-            if (!session) {
+  .group("/api/auth", (app) =>
+    app
+      .group("/session", (app) =>
+        app
+          .get(
+            "/",
+            ({ cookie, status }) => {
+              const sessionId = cookie.sessionId.value;
+              const session = sessions.get(sessionId);
+              if (!session) {
+                // 쿠키에 sessionId 제거
+                cookie.sessionId.remove();
+                return status(401, "Unauthorized");
+              }
+              return status(200);
+            },
+            {
+              cookie: t.Cookie({
+                sessionId: t.String(),
+              }),
+            },
+          )
+          .post(
+            "/login",
+            ({ body, cookie, status }) => {
+              const { username, password } = body;
+
+              if (
+                username !== testUser.username ||
+                !Bun.password.verify(password, testUser.password)
+              ) {
+                return status(401, "Invalid username or password");
+              }
+
+              const newSessionId = generateSessionId();
+              sessions.set(newSessionId, {
+                username,
+                createAt: Date.now(),
+                expiresAt: Date.now() + 60 * 1000,
+              });
+              cookie.sessionId.set({ value: newSessionId });
+              return status(200);
+            },
+            {
+              body: t.Object({
+                username: t.String(),
+                password: t.String(),
+              }),
+            },
+          )
+          .delete(
+            "/logout",
+            ({ cookie, status }) => {
+              const sessionId = cookie.sessionId.value;
+              // 세션 저장소에서 세션 제거
+              sessions.delete(sessionId);
               // 쿠키에 sessionId 제거
               cookie.sessionId.remove();
-              return status(401, "Unauthorized");
-            }
-            return status(200);
-          },
-          {
-            cookie: t.Cookie({
-              sessionId: t.String(),
-            }),
-          },
-        )
-        .post(
-          "/login",
-          ({ body, cookie, status }) => {
+              status(200);
+            },
+            {
+              cookie: t.Cookie({
+                sessionId: t.String(),
+              }),
+            },
+          ),
+      )
+      .use(
+        jwt({
+          name: "jwt",
+          secret: "Fischl von Luftschloss Narfidort",
+        }),
+      )
+      .group("/token", (app) =>
+        app.post(
+          "login",
+          async ({ body, status, jwt }) => {
             const { username, password } = body;
 
             if (
@@ -50,14 +104,14 @@ const app = new Elysia()
               return status(401, "Invalid username or password");
             }
 
-            const newSessionId = generateSessionId();
-            sessions.set(newSessionId, {
-              username,
-              createAt: Date.now(),
-              expiresAt: Date.now() + 60 * 1000,
+            const accessToken = await jwt.sign({
+              sub: username,
+              exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
             });
-            cookie.sessionId.set({ value: newSessionId });
-            return status(200);
+
+            return status(200, {
+              accessToken,
+            });
           },
           {
             body: t.Object({
@@ -65,24 +119,8 @@ const app = new Elysia()
               password: t.String(),
             }),
           },
-        )
-        .delete(
-          "/logout",
-          ({ cookie, status }) => {
-            const sessionId = cookie.sessionId.value;
-            // 세션 저장소에서 세션 제거
-            sessions.delete(sessionId);
-            // 쿠키에 sessionId 제거
-            cookie.sessionId.remove();
-            status(200);
-          },
-          {
-            cookie: t.Cookie({
-              sessionId: t.String(),
-            }),
-          },
         ),
-    ),
+      ),
   )
   .listen(3000);
 
