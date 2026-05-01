@@ -46,7 +46,12 @@ function InfoCard({
           </Field>
           <Field>
             <FieldLegend>{sessionInfo.name}</FieldLegend>
-            <FieldDescription>{sessionInfo.value}</FieldDescription>
+            <FieldDescription
+              className="break-all line-clamp-1"
+              title={sessionInfo.value}
+            >
+              {sessionInfo.value}
+            </FieldDescription>
           </Field>
         </FieldGroup>
       </CardContent>
