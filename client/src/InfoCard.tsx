@@ -13,13 +13,13 @@ import { cn } from "./lib/utils";
 
 function InfoCard({
   title,
-  refreshSession,
+  refresh,
   session,
   isRefreshing,
   sessionInfo,
 }: {
   title: string;
-  refreshSession: () => void;
+  refresh: () => void;
   session: boolean;
   isRefreshing: boolean;
   sessionInfo: { name: string; value: string };
@@ -29,7 +29,7 @@ function InfoCard({
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardAction>
-          <Button variant="ghost" size="sm" onClick={refreshSession}>
+          <Button variant="ghost" size="sm" onClick={refresh}>
             <RefreshCw
               className={cn("size-3.5", isRefreshing && "animate-spin")}
             />

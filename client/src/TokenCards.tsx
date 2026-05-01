@@ -4,6 +4,27 @@ import LoginCard from "./LoginCard";
 
 function TokenCards() {
   const [token, setToken] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  async function refeshToken() {
+    setIsRefreshing(true)
+    try {
+      const response = await fetch("/api/auth/token",{
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (response.ok) {
+        setToken(token)
+      } else {
+        throw new Error()
+      }
+    } catch {
+      setToken(null)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   async function login(formData: FormData) {
     const username = formData.get("username");
@@ -29,16 +50,20 @@ function TokenCards() {
     }
   }
 
+  function logout() {
+    setToken(null)
+  }
+
   return (
     <>
       <InfoCard
         title="Token"
-        refreshSession={() => {}}
+        refresh={refeshToken}
         session={!!token}
-        isRefreshing={false}
+        isRefreshing={isRefreshing}
         sessionInfo={{name: 'Token', value: token}}
       />
-      <LoginCard action={login} session={!!token} logout={() => {}} />
+      <LoginCard action={login} session={!!token} logout={logout} />
     </>
   );
 }

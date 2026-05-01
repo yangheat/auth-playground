@@ -47,7 +47,7 @@ function SessionCards() {
     <>
       <InfoCard
         title="Session"
-        refreshSession={refreshSession}
+        refresh={refreshSession}
         session={session}
         isRefreshing={isRefreshing}
         sessionInfo={{ name: "Cookie", value: document.cookie }}

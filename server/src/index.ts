@@ -92,34 +92,45 @@ const app = new Elysia()
         }),
       )
       .group("/token", (app) =>
-        app.post(
-          "login",
-          async ({ body, status, jwt }) => {
-            const { username, password } = body;
+        app
+          .get("/", async ({ headers, status, jwt }) => {
+            const accessToken = headers.authorization?.split(" ");
+            const profile = await jwt.verify(accessToken?.[1]);
 
-            if (
-              username !== testUser.username ||
-              !Bun.password.verify(password, testUser.password)
-            ) {
-              return status(401, "Invalid username or password");
+            if (!profile) {
+              return status(401, "Unauthorized");
             }
 
-            const accessToken = await jwt.sign({
-              sub: username,
-              exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
-            });
+            status(200);
+          })
+          .post(
+            "login",
+            async ({ body, status, jwt }) => {
+              const { username, password } = body;
 
-            return status(200, {
-              accessToken,
-            });
-          },
-          {
-            body: t.Object({
-              username: t.String(),
-              password: t.String(),
-            }),
-          },
-        ),
+              if (
+                username !== testUser.username ||
+                !Bun.password.verify(password, testUser.password)
+              ) {
+                return status(401, "Invalid username or password");
+              }
+
+              const accessToken = await jwt.sign({
+                sub: username,
+                exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
+              });
+
+              return status(200, {
+                accessToken,
+              });
+            },
+            {
+              body: t.Object({
+                username: t.String(),
+                password: t.String(),
+              }),
+            },
+          ),
       ),
   )
   .listen(3000);
