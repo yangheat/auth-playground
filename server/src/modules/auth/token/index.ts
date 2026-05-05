@@ -1,11 +1,14 @@
 import jwt from "@elysia/jwt";
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { Auth } from "../service";
 import { AuthModel } from "../model";
 
 const refreshTokens = new Map<string, { iat: number; exp: number }>();
 
-function createAccessToken() {}
+function storeRefreshToken(token: string) {
+  const timestamp = Math.floor(Date.now() / 1000);
+  refreshTokens.set(token, { iat: timestamp, exp: timestamp + 2 * 60 });
+}
 
 export const token = new Elysia({ prefix: "token" })
   .use(
@@ -15,29 +18,47 @@ export const token = new Elysia({ prefix: "token" })
       exp: "1m",
     }),
   )
-  .get("/", async ({ headers, status, jwt }) => {
-    const accessToken = headers.authorization?.split(" ")[1];
-    const profile = await jwt.verify(accessToken);
+  .get(
+    "/",
+    async ({ headers, cookie, status, jwt }) => {
+      const accessToken = headers.authorization?.split(" ")[1];
+      const profile = await jwt.verify(accessToken);
 
-    if (profile) {
-      return status(200);
-    }
-
-    const cookies = new URLSearchParams(headers.cookie);
-    const refreshToken = cookies.get("refreshToken");
-
-    if (refreshToken) {
-      const storedRefreshToken = refreshTokens.get(refreshToken);
-      const now = Math.floor(Date.now());
-
-      if (storedRefreshToken && now > storedRefreshToken.exp) {
-        const accessToken = await jwt.sign({});
+      // access token이 유효한 경우
+      if (profile) {
         return status(200, { accessToken });
       }
-    }
 
-    return status(401, "Unauthorized");
-  })
+      const refreshToken = cookie.refreshToken.value;
+      const storedRefreshToken = refreshTokens.get(refreshToken);
+
+      if (!refreshToken || !storedRefreshToken) {
+        return status(401, "Unauthorized");
+      }
+
+      // refresh token 만료 시간이 지남
+      const now = Math.floor(Date.now() / 1000);
+      if (now >= storedRefreshToken.exp) {
+        return status(401, "Unauthorized");
+      }
+
+      // 기존 refresh token 삭제
+      refreshTokens.delete(refreshToken);
+      // 새로운 refresh token 설정
+      const newRefreshToken = crypto.randomUUID();
+      storeRefreshToken(newRefreshToken);
+      cookie.refreshToken.set({ value: newRefreshToken });
+
+      // accessToken 재발급
+      const newAccessToken = await jwt.sign({});
+      return status(200, { accessToken: newAccessToken });
+    },
+    {
+      cookie: t.Cookie({
+        refreshToken: t.String(),
+      }),
+    },
+  )
   .post(
     "/login",
     async ({ body, cookie, jwt, status }) => {
@@ -46,13 +67,9 @@ export const token = new Elysia({ prefix: "token" })
       if (!result) {
         return status(401, "Invalid username or password");
       }
-      
+
       const refreshToken = crypto.randomUUID();
-      const timestamp = Math.floor(Date.now() / 1000);
-      refreshTokens.set(refreshToken, {
-        iat: timestamp,
-        exp: timestamp + 2,
-      });
+      storeRefreshToken(refreshToken);
       cookie.refreshToken.set({ value: refreshToken });
 
       const accessToken = await jwt.sign({});

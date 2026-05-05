@@ -14,11 +14,12 @@ function TokenCards() {
           Authorization: `Bearer ${token}`
         }
       })
-      if (response.ok) {
-        setToken(token)
-      } else {
+      if (!response.ok) {
         throw new Error()
       }
+
+      const data = await response.json()
+      setToken(data.accessToken)
     } catch {
       setToken(null)
     } finally {
