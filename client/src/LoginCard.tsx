@@ -3,15 +3,18 @@ import { Field, FieldGroup } from "./components/ui/field";
 import { FieldLabel } from "./components/ui/field";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
+import type { ReactNode } from "react";
 
 function LoginCard({
   action,
   session,
   logout,
+  children
 }: {
   action: (formData: FormData) => void;
   session: boolean;
   logout: () => void;
+  children: ReactNode
 }) {
   return (
     <>
@@ -34,6 +37,9 @@ function LoginCard({
                   type="password"
                   required
                 ></Input>
+              </Field>
+              <Field>
+                {children}
               </Field>
               <Field>
                 {session ? (

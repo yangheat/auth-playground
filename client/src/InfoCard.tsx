@@ -10,6 +10,7 @@ import {
 import { Button } from "./components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { cn } from "./lib/utils";
+import type { ReactNode } from "react";
 
 function InfoCard({
   title,
@@ -17,12 +18,14 @@ function InfoCard({
   session,
   isRefreshing,
   sessionInfo,
+  children
 }: {
   title: string;
   refresh: () => void;
   session: boolean;
   isRefreshing: boolean;
   sessionInfo: { name: string; value: string };
+  children: ReactNode
 }) {
   return (
     <Card>
@@ -53,6 +56,12 @@ function InfoCard({
               {sessionInfo.value}
             </FieldDescription>
           </Field>
+          {children && <>
+            <Field>
+            {children}
+          </Field>
+          </>}
+          
         </FieldGroup>
       </CardContent>
     </Card>

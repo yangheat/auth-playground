@@ -62,7 +62,8 @@ export const token = new Elysia({ prefix: "token" })
   .post(
     "/login",
     async ({ body, cookie, jwt, status }) => {
-      const result = await Auth.verifyCredentials(body);
+      const { username, password, httpOnly } = body;
+      const result = await Auth.verifyCredentials({ username, password });
 
       if (!result) {
         return status(401, "Invalid username or password");
@@ -70,12 +71,18 @@ export const token = new Elysia({ prefix: "token" })
 
       const refreshToken = crypto.randomUUID();
       storeRefreshToken(refreshToken);
-      cookie.refreshToken.set({ value: refreshToken });
+      cookie.refreshToken.set({
+        value: refreshToken,
+        ...(httpOnly === true ? { httpOnly: true } : {}),
+      });
 
       const accessToken = await jwt.sign({});
       return status(200, { accessToken });
     },
     {
-      body: AuthModel.credentials,
+      body: t.Intersect([
+        AuthModel.credentials,
+        t.Object({ httpOnly: t.Optional(t.Boolean()) }),
+      ]),
     },
   );
