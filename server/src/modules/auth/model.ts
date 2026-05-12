@@ -5,6 +5,16 @@ export const AuthModel = {
     username: t.String(),
     password: t.String(),
   }),
+
+  cookieOptions: t.Object({
+    httpOnly: t.Boolean(),
+    secure: t.Boolean(),
+    sameSite: t.Union([
+      t.Literal("strict"),
+      t.Literal("lax"),
+      t.Literal("none"),
+    ]),
+  }),
 };
 
 export type AuthModel = {

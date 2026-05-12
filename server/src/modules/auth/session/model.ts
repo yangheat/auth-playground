@@ -2,7 +2,7 @@ import { t, type UnwrapSchema } from "elysia";
 
 export const SessionModel = {
   sessionId: t.Cookie({
-    sessionId: t.String()
+    sessionId: t.Optional(t.String())
   })
 }
 

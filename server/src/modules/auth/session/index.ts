@@ -1,4 +1,4 @@
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { SessionModel } from "./model";
 import { AuthModel } from "../model";
 import { Auth } from "../service";
@@ -13,6 +13,10 @@ export const session = new Elysia({ prefix: "session" })
     "/",
     ({ cookie, status }) => {
       const sessionId = cookie.sessionId.value;
+      if (!sessionId) {
+        return status(401, "Unauthorized");
+      }
+
       const session = sessions.get(sessionId);
       if (!session) {
         // 쿠키에 sessionId 제거
@@ -28,7 +32,7 @@ export const session = new Elysia({ prefix: "session" })
   .post(
     "/login",
     async ({ body, cookie, status }) => {
-      const { username, password } = body;
+      const { username, password, httpOnly, secure, sameSite } = body;
       const result = await Auth.verifyCredentials({ username, password });
 
       if (!result) {
@@ -43,17 +47,27 @@ export const session = new Elysia({ prefix: "session" })
       };
 
       sessions.set(sessionId, profile);
-      cookie.sessionId.set({ value: sessionId });
-      return status(200);
+      cookie.sessionId.set({ value: sessionId, httpOnly, secure, sameSite });
+      return status(200, {
+        cookieOptions: {
+          httpOnly,
+          secure,
+          sameSite
+        },
+      });
     },
     {
-      body: AuthModel.credentials,
+      body: t.Intersect([AuthModel.credentials, AuthModel.cookieOptions]),
     },
   )
   .delete(
     "/logout",
     ({ cookie, status }) => {
       const sessionId = cookie.sessionId.value;
+      if (!sessionId) {
+        return status(200);
+      }
+
       // 세션 저장소에서 세션 제거
       sessions.delete(sessionId);
       // 쿠키에 sessionId 제거
