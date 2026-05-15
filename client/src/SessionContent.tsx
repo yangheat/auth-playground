@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import {
@@ -21,18 +21,20 @@ import type { CheckedState } from "@radix-ui/react-checkbox";
 const COKKIE_OPTION_BADGE_STYLES: Record<string, string> = {
   httpOnly:
     "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  secure:
-    "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  secure: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
   sameSite:
     "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
-}
+};
 
 function SessionContent() {
   const [session, setSession] = useState(false);
   const [httpOnly, setHttpOnly] = useState<CheckedState>(false);
   const [secure, setSecure] = useState<CheckedState>(false);
   const [sameSite, setSameSite] = useState("lax");
-  const [cookieOptions, setCookieOptions] = useState<Record<string, string>>({});
+  const [cookieOptions, setCookieOptions] = useState<Record<string, string>>(
+    {},
+  );
+  const [apiTestResult, setApiTestResult] = useState("");
 
   const refreshSession = useCallback(async () => {
     const response = await fetch("/api/auth/session");
@@ -44,6 +46,7 @@ function SessionContent() {
     } catch {
       setSession(false);
     }
+    return response.text();
   }, []);
 
   async function login(formData: FormData) {
@@ -65,8 +68,8 @@ function SessionContent() {
 
     const { cookieOptions } = await response.json();
     setCookieOptions({
-      httpOnly: `HttpOnly: ${cookieOptions.httpOnly ? 'O' : 'X'}`,
-      scure: `Scure: ${cookieOptions.sucre ? 'O': 'X'}`,
+      httpOnly: `HttpOnly: ${cookieOptions.httpOnly ? "O" : "X"}`,
+      scure: `Scure: ${cookieOptions.sucre ? "O" : "X"}`,
       sameSite: `SameSite: ${cookieOptions.sameSite}`,
     });
     refreshSession();
@@ -76,6 +79,15 @@ function SessionContent() {
     fetch("/api/auth/session/logout", {
       method: "DELETE",
     }).then(refreshSession);
+  }, []);
+
+  async function executeSessionApi() {
+    const result = await refreshSession();
+    setApiTestResult(result);
+  }
+
+  useEffect(() => {
+    refreshSession();
   }, []);
 
   return (
@@ -185,18 +197,21 @@ function SessionContent() {
             <pre className="min-h-12 rounded-md bg-muted px-3 py-2 font-mono text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">
               <code>document.cookie = {document.cookie}</code>
             </pre>
-            <Button><a href="https://developer.mozilla.org/ko/">test</a></Button>
-              <form method="POST" action="https://developer.mozilla.org/ko/api/auth/session/test">
-        <button type="submit">Cross-site POST form</button>
-      </form>
           </CardContent>
         </Card>
 
         <Card className="">
-          {/* <CardHeader>
-            <CardTitle>현재 상태</CardTitle>
-          </CardHeader> */}
-          <CardContent>test</CardContent>
+          <CardHeader>
+            <CardTitle>API 테스트</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Button onClick={executeSessionApi}>GET /auth/session</Button>
+              <pre className="min-h-12 rounded-md bg-muted px-3 py-2 font-mono text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                <code>{apiTestResult}</code>
+              </pre>
+            </FieldGroup>
+          </CardContent>
         </Card>
         <Card className="">
           <CardHeader>
@@ -206,7 +221,9 @@ function SessionContent() {
             {Object.entries(cookieOptions)
               .filter(([, enabled]) => enabled)
               .map(([name, value]) => (
-                <Badge key={name} className={COKKIE_OPTION_BADGE_STYLES[name]}>{value}</Badge>
+                <Badge key={name} className={COKKIE_OPTION_BADGE_STYLES[name]}>
+                  {value}
+                </Badge>
               ))}
           </CardContent>
         </Card>
