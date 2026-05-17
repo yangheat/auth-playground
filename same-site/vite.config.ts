@@ -8,6 +8,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: "0.0.0.0",
+    port: 5174,
+    strictPort: true,
     allowedHosts: ["external-test.test"],
   },
   resolve: {
