@@ -40,21 +40,17 @@ export const session = new Elysia({ prefix: "session" })
       }
 
       const sessionId = crypto.randomUUID();
+      const cookieOptions = { httpOnly, secure, sameSite };
       const profile = {
         username,
         createAt: Date.now(),
         expiresAt: Date.now() + 60 * 1000,
+        cookieOptions,
       };
 
       sessions.set(sessionId, profile);
-      cookie.sessionId.set({ value: sessionId, httpOnly, secure, sameSite });
-      return status(200, {
-        cookieOptions: {
-          httpOnly,
-          secure,
-          sameSite
-        },
-      });
+      cookie.sessionId.set({ value: sessionId, ...cookieOptions });
+      return status(200, { cookieOptions });
     },
     {
       body: t.Intersect([AuthModel.credentials, AuthModel.cookieOptions]),
