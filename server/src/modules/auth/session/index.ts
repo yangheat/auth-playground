@@ -56,6 +56,24 @@ export const session = new Elysia({ prefix: "session" })
       body: t.Intersect([AuthModel.credentials, AuthModel.cookieOptions]),
     },
   )
+  .get(
+    "/logout",
+    ({ cookie, status }) => {
+      const sessionId = cookie.sessionId.value;
+      if (!sessionId) {
+        return status(200);
+      }
+
+      // 세션 저장소에서 세션 제거
+      sessions.delete(sessionId);
+      // 쿠키에 sessionId 제거
+      cookie.sessionId.remove();
+      status(200);
+    },
+    {
+      cookie: SessionModel.sessionId,
+    },
+  )
   .delete(
     "/logout",
     ({ cookie, status }) => {
