@@ -5,7 +5,16 @@ import { Auth } from "../service";
 
 const sessions = new Map<
   string,
-  { username: string; createAt: number; expiresAt: number }
+  {
+    username: string;
+    createAt: number;
+    expiresAt: number;
+    cookieOptions: {
+      httpOnly: boolean;
+      secure: boolean;
+      sameSite: "none" | "strict" | "lax";
+    };
+  }
 >();
 
 export const session = new Elysia({ prefix: "session" })
@@ -23,7 +32,7 @@ export const session = new Elysia({ prefix: "session" })
         cookie.sessionId.remove();
         return status(401, "Unauthorized");
       }
-      return status(200);
+      return status(200, { cookieOptions: session.cookieOptions });
     },
     {
       cookie: SessionModel.sessionId,
@@ -50,7 +59,7 @@ export const session = new Elysia({ prefix: "session" })
 
       sessions.set(sessionId, profile);
       cookie.sessionId.set({ value: sessionId, ...cookieOptions });
-      return status(200, { cookieOptions });
+      return status(200);
     },
     {
       body: t.Intersect([AuthModel.credentials, AuthModel.cookieOptions]),

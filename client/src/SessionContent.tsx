@@ -38,15 +38,25 @@ function SessionContent() {
 
   const refreshSession = useCallback(async () => {
     const response = await fetch("/api/auth/session");
+    let result: { cookieOptions: { httpOnly: boolean; secure: boolean; sameSite: "none" | "strict" | "lax" } } = { cookieOptions: { httpOnly: false, secure: false, sameSite: "lax" } };
     try {
       if (!response.ok) {
         throw new Error();
       }
+      
+      result = await response.json();
+      const { httpOnly, secure, sameSite } = result.cookieOptions;
+      setCookieOptions({
+        httpOnly: `HttpOnly: ${httpOnly ? "O" : "X"}`,
+        scure: `Scure: ${secure ? "O" : "X"}`,
+        sameSite: `SameSite: ${sameSite}`,
+      });
       setSession(true);
     } catch {
       setSession(false);
     }
-    return response.text();
+
+    return result
   }, []);
 
   async function login(formData: FormData) {
@@ -66,12 +76,6 @@ function SessionContent() {
       return;
     }
 
-    const { cookieOptions } = await response.json();
-    setCookieOptions({
-      httpOnly: `HttpOnly: ${cookieOptions.httpOnly ? "O" : "X"}`,
-      scure: `Scure: ${cookieOptions.sucre ? "O" : "X"}`,
-      sameSite: `SameSite: ${cookieOptions.sameSite}`,
-    });
     refreshSession();
   }
 
@@ -83,7 +87,7 @@ function SessionContent() {
 
   async function executeSessionApi() {
     const result = await refreshSession();
-    setApiTestResult(result);
+    setApiTestResult(JSON.stringify(result));
   }
 
   useEffect(() => {
