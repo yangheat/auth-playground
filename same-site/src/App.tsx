@@ -4,12 +4,12 @@ import { Field, FieldGroup } from "@/components/ui/field";
 
 function App() {
   function topLevelGet() {
-    window.location.href = "http://auth-playground.test:5173/api/auth/session";
+    window.location.href = "https://auth-playground.test:5173/api/auth/session";
   }
 
   async function logout() {
     const response = await fetch(
-      "http://auth-playground.test:5173/api/auth/session/logout",
+      "https://auth-playground.test:5173/api/auth/session/logout",
       {
         method: "DELETE",
         credentials: "include",
@@ -20,14 +20,14 @@ function App() {
   }
 
   async function fetchGet() {
-    await fetch("http://auth-playground.test:5173/api/auth/session", {
+    await fetch("https://auth-playground.test:5173/api/auth/session", {
       credentials: "include",
     });
   }
 
   function unsafeLogout() {
     window.location.href =
-      "http://auth-playground.test:5173/api/auth/session/logout";
+      "https://auth-playground.test:5173/api/auth/session/logout";
   }
 
   return (
