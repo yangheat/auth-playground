@@ -7,8 +7,8 @@ function App() {
   const [mode, setMode] = useState('session')
 
   return (
-    <>
-      <Tabs value={mode} onValueChange={setMode}>
+    <main className="flex min-h-dvh items-center justify-center p-4">
+      <Tabs value={mode} onValueChange={setMode} className="w-full max-w-5xl">
         <TabsList className="w-full">
           <TabsTrigger value="session">Session</TabsTrigger>
           <TabsTrigger value="token">Token</TabsTrigger>
@@ -20,7 +20,7 @@ function App() {
           <TokenCards />
         </TabsContent>
       </Tabs>
-    </>
+    </main>
   );
 }
 
