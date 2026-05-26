@@ -16,6 +16,12 @@ export default defineConfig({
     },
     strictPort: true,
     allowedHosts: ["auth-playground.test"],
+    cors: {
+      origin: "https://external-test.test:5174",
+      credentials: true,
+      methods: ["GET", "POST", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type"],
+    },
     proxy: {
       // 로컬 환경 테스트에서 CORS 정책 문제 해결을 위해 프록시 설정
       // api 요청은 3000번 포트로 전달

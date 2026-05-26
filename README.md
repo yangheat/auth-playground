@@ -24,8 +24,8 @@ SameSite 테스트는 서로 다른 site가 필요하다.
 
 ### 2. HTTPS 인증서 생성
 
-Secure 쿠키 테스트와 SameSite=None; 테스트는 HTTPS가 필요하다.
-따라서 인증서를 mkcert로 생성한다.
+Secure 옵션과 SameSite=None 테스트는 HTTPS가 필요하다.
+따라서 인증서를 mkcert로 프로젝트 루트에 생성한다.
 
 ```bash
 brew install mkcert
@@ -80,13 +80,13 @@ password: 1234
 
 ### HttpOnly
 
-JS에서 쿠키를 읽을 수 없는지 확인
+JS에서 쿠키 값 접근 여부를 설정하는 옵션
 
 - 개발자 도구 Console에서 쿠키 확인
     ```js
     document.cookie
     ```
--  https://auth-playground.test:5173/ 에서 쿠키 상태 항목 확인
+-  https://auth-playground.test:5173/ 에서 쿠키 상태 카드 확인
     | 옵션 | 결과 |
     | --- | --- |
     | HttpOnly=false | sessinId 보임 |
@@ -94,7 +94,8 @@ JS에서 쿠키를 읽을 수 없는지 확인
 
 ### Secure
 
-HTTPS에서만 전송되는지 확인
+요청 시 HTTP/HTTPS에서 전송 가능하도록 설정하는 옵션 
+
 | 조건 | 결과 |
 | --- | --- |
 | Secure=false | HTTP/HTTPS에서 전송 가능 |
@@ -102,14 +103,16 @@ HTTPS에서만 전송되는지 확인
 
 ### SameSite
 
-Cross-site 요청에서 쿠키 전송 여부 확인
+다른 사이트에서 시작된 요청에 쿠키를 포함하여 보낼지 결정하는 옵션
 
-| 테스트 | Strict | Lax(기본값) | None | 확인 내용 |
-| --- | --- | --- | --- | --- |
-| Top-level GET /session | 쿠키 붙음 | 쿠키 안 붙음 | 미구현 | Request Headers > Cookie |
-| Cross-site fetch GET /session | 쿠키 안 붙음 | 쿠키 안 붙음 | 미구현 | Request Headers > Cookie 없음 |
-| Cross-site DELETE /logout | 쿠키 안 붙음 | 쿠키 안 붙음 | 미구현 | 로그아웃 안 됨 |
-| Top-level unsafe GET /logout | 쿠키 안 붙음 | 쿠키 붙음 | 미구현 | 로그아웃됨. |
+- 쿠키가 붙는지 여부를 확인한다.
+
+| 테스트 | 요청 방식 | Strict | Lax(기본값) | None | 확인 내용 |
+| --- | --- | --- | --- | --- | --- |
+| Top-level GET /session | window.location.href | 안 붙음 | 붙음 | 붙음 | Request Headers > Cookie |
+| Top-level unsafe GET /logout | window.location.href | 안 붙음 | 붙음 | 붙음 | 로그아웃 여부 |
+| Cross-site fetch GET /session | fetch(..., { credentials: "include") } | 안 붙음 | 안 붙음 | CORS 허용 시 붙음 | Request Headers > Cookie |
+| Cross-site DELETE /logout | fetch(..., { credentials: "include") }) | 안 붙음 | 안 붙음 | CORS 허용 시 붙음 | 로그아웃 여부 |
 
 확인 위치 : DevTools > Network > Request Headers > Cookie
 
