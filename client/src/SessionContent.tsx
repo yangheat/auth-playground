@@ -18,7 +18,19 @@ import { Badge } from "./components/ui/badge";
 
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
-const COKKIE_OPTION_BADGE_STYLES: Record<string, string> = {
+type SameSite = "strict" | "lax" | "none";
+
+type CookieOptions = {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: SameSite;
+};
+
+type SessionApiResult =
+  | { ok: true; status: number; body: { cookieOptions: CookieOptions } }
+  | { ok: false; status: number; message: string };
+
+const COOKIE_OPTION_BADGE_STYLES: Record<keyof CookieOptions, string> = {
   httpOnly:
     "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
   secure: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
@@ -26,38 +38,55 @@ const COKKIE_OPTION_BADGE_STYLES: Record<string, string> = {
     "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
 };
 
+async function requestSession(): Promise<SessionApiResult> {
+  try {
+    const response = await fetch("/api/auth/session");
+    if (!response.ok) {
+      const message = (await response.text()) || response.statusText;
+      return { ok: false, status: response.status, message };
+    }
+
+    const body = (await response.json()) as { cookieOptions: CookieOptions };
+    return { ok: true, status: response.status, body };
+  } catch {
+    return { ok: false, status: 0, message: "Network error" };
+  }
+}
+
 function SessionContent() {
   const [session, setSession] = useState(false);
   const [httpOnly, setHttpOnly] = useState<CheckedState>(false);
   const [secure, setSecure] = useState<CheckedState>(false);
-  const [sameSite, setSameSite] = useState("lax");
-  const [cookieOptions, setCookieOptions] = useState<Record<string, string>>(
-    {},
+  const [sameSite, setSameSite] = useState<SameSite>("lax");
+  const [cookieOptions, setCookieOptions] = useState<CookieOptions | null>(
+    null,
   );
   const [apiTestResult, setApiTestResult] = useState("");
 
-  const refreshSession = useCallback(async () => {
-    const response = await fetch("/api/auth/session");
-    let result: { cookieOptions: { httpOnly: boolean; secure: boolean; sameSite: "none" | "strict" | "lax" } } = { cookieOptions: { httpOnly: false, secure: false, sameSite: "lax" } };
-    try {
-      if (!response.ok) {
-        throw new Error();
-      }
-      
-      result = await response.json();
-      const { httpOnly, secure, sameSite } = result.cookieOptions;
-      setCookieOptions({
-        httpOnly: `HttpOnly: ${httpOnly ? "O" : "X"}`,
-        scure: `Scure: ${secure ? "O" : "X"}`,
-        sameSite: `SameSite: ${sameSite}`,
-      });
+  const applySessionResult = useCallback((result: SessionApiResult) => {
+    if (result.ok) {
+      setCookieOptions(result.body.cookieOptions);
       setSession(true);
-    } catch {
-      setSession(false);
+      return;
     }
 
-    return result
+    setCookieOptions(null);
+    setSession(false);
   }, []);
+
+  const refreshSession = useCallback(
+    async ({ updateApiTestResult = false } = {}) => {
+      const result = await requestSession();
+      applySessionResult(result);
+
+      if (updateApiTestResult) {
+        setApiTestResult(JSON.stringify(result, null, 2));
+      }
+
+      return result;
+    },
+    [applySessionResult],
+  );
 
   async function login(formData: FormData) {
     const username = formData.get("username");
@@ -76,23 +105,32 @@ function SessionContent() {
       return;
     }
 
-    refreshSession();
+    await refreshSession({ updateApiTestResult: true });
   }
 
-  const logout = useCallback(() => {
-    fetch("/api/auth/session/logout", {
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/session/logout", {
       method: "DELETE",
-    }).then(refreshSession);
-  }, []);
+    });
+
+    await refreshSession({ updateApiTestResult: true });
+  }, [refreshSession]);
 
   async function executeSessionApi() {
-    const result = await refreshSession();
-    setApiTestResult(JSON.stringify(result));
+    await refreshSession({ updateApiTestResult: true });
+  }
+
+  function changeSameSite(value: string) {
+    if (!value) {
+      return;
+    }
+
+    setSameSite(value as SameSite);
   }
 
   useEffect(() => {
-    refreshSession();
-  }, []);
+    void refreshSession();
+  }, [refreshSession]);
 
   return (
     <main className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-2">
@@ -139,8 +177,8 @@ function SessionContent() {
               <FieldGroup>
                 <ToggleGroup
                   type="single"
-                  defaultValue={sameSite}
-                  onValueChange={setSameSite}
+                  value={sameSite}
+                  onValueChange={changeSameSite}
                   className="w-full"
                 >
                   <ToggleGroupItem value="strict" className="flex-1">
@@ -212,7 +250,7 @@ function SessionContent() {
             <FieldGroup>
               <Button onClick={executeSessionApi}>GET /auth/session</Button>
               <pre className="min-h-12 rounded-md bg-muted px-3 py-2 font-mono text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                <code>{apiTestResult}</code>
+                <code>{apiTestResult || "아직 실행하지 않았습니다."}</code>
               </pre>
             </FieldGroup>
           </CardContent>
@@ -222,13 +260,23 @@ function SessionContent() {
             <CardTitle>현재 상태</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            {Object.entries(cookieOptions)
-              .filter(([, enabled]) => enabled)
-              .map(([name, value]) => (
-                <Badge key={name} className={COKKIE_OPTION_BADGE_STYLES[name]}>
-                  {value}
+            {cookieOptions ? (
+              <>
+                <Badge className={COOKIE_OPTION_BADGE_STYLES.httpOnly}>
+                  HttpOnly: {cookieOptions.httpOnly ? "O" : "X"}
                 </Badge>
-              ))}
+                <Badge className={COOKIE_OPTION_BADGE_STYLES.secure}>
+                  Secure: {cookieOptions.secure ? "O" : "X"}
+                </Badge>
+                <Badge className={COOKIE_OPTION_BADGE_STYLES.sameSite}>
+                  SameSite: {cookieOptions.sameSite}
+                </Badge>
+              </>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                세션 쿠키 없음
+              </span>
+            )}
           </CardContent>
         </Card>
       </section>
